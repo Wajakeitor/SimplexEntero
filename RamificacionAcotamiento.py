@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 from scipy.optimize import linprog
 from copy import deepcopy
+from graphviz import Digraph
 
 # Configurar el ancho de la página
 st.set_page_config(layout="wide")
@@ -9,6 +10,8 @@ st.set_page_config(layout="wide")
 # Estructura de arbol
 rutaValor = []
 rutaArbol = []
+cota = np.inf
+SolOptima = []
 class Arbol():
     def __init__(self, m, C, A, b, A_eq, b_eq, tipoVariable, intervalos, min):
         self.m = m
@@ -19,31 +22,83 @@ class Arbol():
         self.b_eq = deepcopy(b_eq)
         self.tipoVar = deepcopy(tipoVariable)
         self.intervalos = deepcopy(intervalos)
-        self.cota = np.inf if min else np.NINF 
         self.min = min
+        self.x = None
+        self.fun = None
         self.left = None
         self.right = None
+        self.label = ""
+        self.separador = None
+        self.valSep = None
 
     def __call__(self):
-        result = linprog(c=self.C, A_ub=self.A, b_ub=self.b, A_eq=self.A_eq, b_eq=self.b_eq, bounds=self.intervalos, method='highs')
+        global cota
+        global SolOptima
+        global rutaValor
+        global rutaArbol
+
+        result = linprog(c=self.C, A_ub=self.A_ub, b_ub=self.b_ub, A_eq=self.A_eq, b_eq=self.b_eq, bounds=self.intervalos, method='highs')
         if result.success:
-            if (result.fun<self.cota and not self.min) or (result.fun>self.cota and self.min):
+            solucion = True
+            self.x = result.x
+            self.fun = result.fun
+            if (result.fun <= cota):
                 for i in range(m):
-                    if abs(int(result.x[i])-result.x[i]) > 0.000_000_1:
-                        if self.tipoVar[i] != 'continua':
-                            intervaloAux = deepcopy(intervalos)
-                            intervaloAux[i] = intervaloAux[i][0], result.x[i]//1
+                    if abs(int(result.x[i])-result.x[i]) > 0.001:
+                        if self.tipoVar[i] != 'Continua':
+                            self.valSep = int(result.x[i])
+                            self.separador = i
+                            intervaloAux = deepcopy(self.intervalos)
+                            intervaloAux[i] = [intervaloAux[i][0], int(result.x[i])]
                             self.left = Arbol(self.m, self.C, self.A_ub, self.b_ub, self.A_eq, self.b_eq, self.tipoVar, intervaloAux, self.min)
 
-                            intervaloAux = deepcopy(intervalos)
-                            intervaloAux[i] = result.x[i]//1 + 1, intervaloAux[i][1]
+                            intervaloAux = deepcopy(self.intervalos)
+                            intervaloAux[i] = [int(result.x[i]) + 1, intervaloAux[i][1]]
                             self.right = Arbol(self.m, self.C, self.A_ub, self.b_ub, self.A_eq, self.b_eq, self.tipoVar, intervaloAux, self.min)
+                            solucion = False
                             break
+                        
+                if solucion:
+                    if result.fun < cota:
+                        cota = result.fun
+                        SolOptima = result.x
+                        self.label = "Z cota"
+                    else:
+                        self.label = "Agotado"
+                else:
+                    if result.fun <= cota:
+                        final=True
+                        for i in range(len(rutaValor)):
+                            if rutaValor[i] == result.fun:
+                                rutaArbol[i].append(self.left)
+                                rutaArbol[i].append(self.right)
+                                final = False
+                                break
+                        if final:
+                            rutaValor.append(result.fun)
+                            rutaArbol.append([])
+                            rutaArbol[-1].append(self.left)
+                            rutaArbol[-1].append(self.right)
+                        self.label = ""
+                    else:
+                        self.left = "Agotado"
+            
+            else:
+                self.label = "Problema agotado"
 
-                if result.fun in np.indrutaValor:
-                    pass
+        else: self.label = "Solución no factible"
 
-        return result
+        if len(rutaValor)==0: return self
+        else:
+            i = np.argmin(rutaValor)
+            nodo = rutaArbol[i][0]
+            rutaArbol[i].pop(0)
+            if len(rutaArbol[i]) == 0:
+                rutaArbol.pop(i)
+                rutaValor.pop(i)
+            nodo()
+
+        return self
 
 
 st.title("Solución de Problemas de Programación Entera por Ramificación y Acotamiento.")
@@ -122,7 +177,10 @@ for i in range(n):
         b_eq.append(b[i])
     else:
         A_ub.append([-a for a in A[i]])
-        b_ub.append([-b[i]])
+        b_ub.append(-b[i])
+
+st.write(A_ub)
+st.write(b_ub)
 
 if len(A_ub) == 0: A_ub = None
 if len(b_ub) == 0: b_ub = None
@@ -134,4 +192,37 @@ for i in range(m):
         intervalos.append((0,1))
     else: intervalos.append((0, None))
 
-arbol = Arbol(m, C, A_ub, b_ub, A_eq, b_eq, tipos, intervalos)
+arbol = Arbol(m, C, A_ub, b_ub, A_eq, b_eq, tipos, intervalos, minmaxOpcion)
+arbol()
+
+# Crear un gráfico simple
+dot = Digraph()
+
+Aristas = []
+i = 0
+def PintarHijo(padre, ipadre):
+    global i
+    if padre.left != None:
+        dot.node(f'{i}', f"{padre.left.x}\n{padre.left.fun}\n{padre.left.label}")
+        Aristas.append([f'{ipadre}', f'{i}', f"X_{padre.separador+1} ≤ {padre.valSep}"])
+        ipadreI = i
+        i += 1
+    if padre.right != None:
+        dot.node(f'{i}', f"{padre.right.x}\n{padre.left.fun}\n{padre.right.label}")
+        Aristas.append([f'{ipadre}', f'{i}', f"X_{padre.separador+1} ≥ {padre.valSep+1}"])
+        ipadreD = i
+        i += 1
+    if padre.left != None: PintarHijo(padre.left, ipadreI)
+    if padre.right != None: PintarHijo(padre.right, ipadreD)
+
+dot.node(f'{i}', f"{arbol.x}\n{arbol.fun}\n{arbol.label}")
+i += 1
+PintarHijo(arbol, 0)
+
+
+for origen, destino, etiqueta in Aristas:
+    dot.edge(origen, destino, label=etiqueta)
+#dot.edges(Aristas)
+
+# Renderizar el gráfico en Streamlit
+st.graphviz_chart(dot)
