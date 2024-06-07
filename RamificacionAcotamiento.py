@@ -160,7 +160,7 @@ for i in range(m):
     cols[2*i].markdown(f"$X_{{{i+1}}}: $")
     tipos.append(cols[2*i+1].selectbox("variable", options=options2, key=f"{m+i}", index=1, label_visibility='collapsed'))
 
-cols[-1].markdown(f"$X_{{i+1}}\geq 0$")
+cols[-1].markdown(f"$X_{{i}}\geq 0$")
 
 cols = st.columns(1)
 
