@@ -11,7 +11,7 @@ st.set_page_config(layout="wide")
 import subprocess
 
 # Ejecutar el comando y capturar la salida
-output = subprocess.check_output(["cat", "/etc/*release"])
+output = subprocess.check_output(["cat", "/etc/lsb-release"])
 
 # Decodificar la salida y mostrarla
 st.write(output.decode("utf-8"))
