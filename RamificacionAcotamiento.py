@@ -228,7 +228,7 @@ def PintarHijo(padre, ipadre):
         ipadreI = i
         i += 1
     if padre.right != None:
-        dot.node(f'{i}', f"{EscribirSolucion(padre.right.x)}\n{padre.right.fun * signo if padre.right.fun else ""}\n{padre.right.label}")
+        dot.node(f'{i}', f'{EscribirSolucion(padre.right.x)}\n{padre.right.fun * signo if padre.right.fun else ""}\n{padre.right.label}')
         Aristas.append([f'{ipadre}', f'{i}', f"X_{padre.separador+1} ≥ {padre.valSep+1}"])
         ipadreD = i
         i += 1
