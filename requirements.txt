@@ -1,7 +1,5 @@
 streamlit
-pandas
-plotly
-matplotlib
 scipy
 numpy
 graphviz
+locale
