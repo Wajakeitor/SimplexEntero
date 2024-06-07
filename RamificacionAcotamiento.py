@@ -235,7 +235,7 @@ def PintarHijo(padre, ipadre):
     if padre.left != None: PintarHijo(padre.left, ipadreI)
     if padre.right != None: PintarHijo(padre.right, ipadreD)
 
-dot.node(f'{i}', f"{EscribirSolucion(arbol.x)}\n{arbol.fun * signo if arbol.fun else ""}\n{arbol.label}")
+dot.node(f'{i}', f'{EscribirSolucion(arbol.x)}\n{arbol.fun * signo if arbol.fun else ""}\n{arbol.label}')
 i += 1
 PintarHijo(arbol, 0)
 
