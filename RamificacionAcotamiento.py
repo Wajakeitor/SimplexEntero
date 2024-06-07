@@ -8,6 +8,14 @@ from graphviz import Digraph
 # Configurar el ancho de la página
 st.set_page_config(layout="wide")
 
+import subprocess
+
+# Ejecutar el comando y capturar la salida
+output = subprocess.check_output(["locale", "-a"])
+
+# Decodificar la salida y mostrarla
+st.write(output.decode("utf-8"))
+
 # Configurar el locale para el formato numérico de México
 locale.setlocale(locale.LC_ALL, 'en_US.utf8')
 
