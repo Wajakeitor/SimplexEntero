@@ -1,11 +1,18 @@
 import streamlit as st
 import numpy as np
+import locale
 from scipy.optimize import linprog
 from copy import deepcopy
 from graphviz import Digraph
 
 # Configurar el ancho de la página
 st.set_page_config(layout="wide")
+
+# Configurar el locale para el formato numérico de México
+locale.setlocale(locale.LC_ALL, 'en_US.utf8')
+
+def format_number(num):
+    return locale.format_string("%0.3f", num, grouping=True)
 
 # Estructura de arbol
 rutaValor = []
@@ -44,7 +51,7 @@ class Arbol():
             self.fun = result.fun
             if (result.fun <= cota):
                 for i in range(m):
-                    if abs(int(result.x[i])-result.x[i]) > 0.001:
+                    if abs(int(result.x[i])-result.x[i]) > 0.000_001:
                         if self.tipoVar[i] != 'Continua':
                             self.valSep = int(result.x[i])
                             self.separador = i
@@ -150,10 +157,10 @@ cols = st.columns([1 if i%2==0 else 3 for i in range(2*m)]+[1,2])
 # Definir el tipo de variable
 options2 = ['Continua', 'Entera', 'Binaria']
 for i in range(m):
-    cols[2*i].markdown(f"$X_{{{i}}}: $")
+    cols[2*i].markdown(f"$X_{{{i+1}}}: $")
     tipos.append(cols[2*i+1].selectbox("variable", options=options2, key=f"{m+i}", index=1, label_visibility='collapsed'))
 
-cols[-1].markdown(f"$X_{{i}}\geq 0$")
+cols[-1].markdown(f"$X_{{i+1}}\geq 0$")
 
 cols = st.columns(1)
 
@@ -179,9 +186,6 @@ for i in range(n):
         A_ub.append([-a for a in A[i]])
         b_ub.append(-b[i])
 
-st.write(A_ub)
-st.write(b_ub)
-
 if len(A_ub) == 0: A_ub = None
 if len(b_ub) == 0: b_ub = None
 if len(A_eq) == 0: A_eq = None
@@ -195,6 +199,22 @@ for i in range(m):
 arbol = Arbol(m, C, A_ub, b_ub, A_eq, b_eq, tipos, intervalos, minmaxOpcion)
 arbol()
 
+
+signo = -1 if minmaxOpcion == 'Max' else 1
+
+st.write("La solución optima es:")
+st.write(SolOptima)
+st.write(f"Z = {cota * signo if cota else None}")
+
+
+def EscribirSolucion(array):
+    if array is None: return ""
+    cadena = ""
+    for i, x in enumerate(array):
+        if i%4 == 0 and i != 0: cadena += "\n"
+        cadena += f"X_{i+1} = {format_number(x)}  "
+    return cadena
+
 # Crear un gráfico simple
 dot = Digraph()
 
@@ -203,26 +223,24 @@ i = 0
 def PintarHijo(padre, ipadre):
     global i
     if padre.left != None:
-        dot.node(f'{i}', f"{padre.left.x}\n{padre.left.fun}\n{padre.left.label}")
+        dot.node(f'{i}', f"{ EscribirSolucion(padre.left.x)}\n{ padre.left.fun * signo if padre.left.fun  else "" }\n{padre.left.label}")
         Aristas.append([f'{ipadre}', f'{i}', f"X_{padre.separador+1} ≤ {padre.valSep}"])
         ipadreI = i
         i += 1
     if padre.right != None:
-        dot.node(f'{i}', f"{padre.right.x}\n{padre.left.fun}\n{padre.right.label}")
+        dot.node(f'{i}', f"{EscribirSolucion(padre.right.x)}\n{padre.right.fun * signo if padre.right.fun else ""}\n{padre.right.label}")
         Aristas.append([f'{ipadre}', f'{i}', f"X_{padre.separador+1} ≥ {padre.valSep+1}"])
         ipadreD = i
         i += 1
     if padre.left != None: PintarHijo(padre.left, ipadreI)
     if padre.right != None: PintarHijo(padre.right, ipadreD)
 
-dot.node(f'{i}', f"{arbol.x}\n{arbol.fun}\n{arbol.label}")
+dot.node(f'{i}', f"{EscribirSolucion(arbol.x)}\n{arbol.fun * signo if arbol.fun else ""}\n{arbol.label}")
 i += 1
 PintarHijo(arbol, 0)
 
-
 for origen, destino, etiqueta in Aristas:
     dot.edge(origen, destino, label=etiqueta)
-#dot.edges(Aristas)
 
 # Renderizar el gráfico en Streamlit
 st.graphviz_chart(dot)
