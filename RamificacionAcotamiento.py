@@ -11,7 +11,7 @@ st.set_page_config(layout="wide")
 import subprocess
 
 # Ejecutar el comando y capturar la salida
-output = subprocess.check_output(["locale", "-a"])
+output = subprocess.check_output(["uname", "-a"])
 
 # Decodificar la salida y mostrarla
 st.write(output.decode("utf-8"))
