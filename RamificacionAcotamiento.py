@@ -8,36 +8,8 @@ from graphviz import Digraph
 # Configurar el ancho de la página
 st.set_page_config(layout="wide")
 
-import subprocess
-
-# Comando para instalar locales en sistemas basados en Debian/Ubuntu
-install_command_debian = "sudo apt-get install locales-all"
-
-# Comando para instalar locales en sistemas basados en Red Hat/Fedora/CentOS
-install_command_redhat = "sudo yum install glibc-langpack-en_US.utf8"
-
-# Ejecutar el comando de instalación en sistemas basados en Debian/Ubuntu
-try:
-    subprocess.run(install_command_debian, shell=True, check=True)
-    print("Locales instalados con éxito en sistemas basados en Debian/Ubuntu.")
-except subprocess.CalledProcessError as e:
-    print("Error al instalar locales en sistemas basados en Debian/Ubuntu:", e)
-
-# Ejecutar el comando de instalación en sistemas basados en Red Hat/Fedora/CentOS
-try:
-    subprocess.run(install_command_redhat, shell=True, check=True)
-    print("Locales instalados con éxito en sistemas basados en Red Hat/Fedora/CentOS.")
-except subprocess.CalledProcessError as e:
-    print("Error al instalar locales en sistemas basados en Red Hat/Fedora/CentOS:", e)
-
-# Ejecutar el comando y capturar la salida
-output = subprocess.check_output(["cat", "/etc/lsb-release"])
-
-# Decodificar la salida y mostrarla
-st.write(output.decode("utf-8"))
-
 # Configurar el locale para el formato numérico de México
-locale.setlocale(locale.LC_ALL, 'en_US.utf8')
+locale.setlocale(locale.LC_ALL, 'C')
 
 def format_number(num):
     return locale.format_string("%0.3f", num, grouping=True)
